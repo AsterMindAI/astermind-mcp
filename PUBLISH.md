@@ -62,6 +62,15 @@ mcp-publisher publish            # reads server.json in this directory
 `server.json` is written and points at the npm package. Once accepted, **Smithery and Glama
 auto-index within ~24–48h** — no separate submission for those.
 
+**Verified against the live registry docs (2026-09-24, github.com/modelcontextprotocol/registry):**
+
+- `server.json` uses schema **`2025-12-11`** (the current version — an earlier draft was rejected-worthy).
+- Ownership proof for the npm package is the **`mcpName` field in package.json** (`io.github.AsterMindAI/astermind-mcp`), which the registry checks against the published npm tarball. It matches `server.json` `name`. This means: whoever runs `npm publish` must publish a package whose package.json carries that exact `mcpName`, and must authenticate to the registry via GitHub as a member of the **AsterMindAI** org.
+- `status` is **registry-managed** (returned at API response level), so it is intentionally NOT in our `server.json`.
+- npm base URL must be exactly `https://registry.npmjs.org` (only trusted registries allowed) — ours is.
+
+**Gotcha to check at publish:** the GitHub namespace segment is `AsterMindAI` (mixed case, matching the org). GitHub owners are case-insensitive but the registry may normalize to lowercase. If `mcp-publisher` rejects the name, retry with `io.github.astermindai/astermind-mcp` in BOTH `server.json` `name` and package.json `mcpName` (they must stay identical).
+
 ## Phase 4 — manual directories
 
 - **Awesome MCP Servers**: fork, add the line from `MARKETPLACE.md`, open a PR.
