@@ -1,0 +1,60 @@
+{
+  "policies": [
+    {
+      "topK": 1,
+      "avgRecallPct": 38.9,
+      "hitRatePct": 100,
+      "avgSavedPct": 87.9,
+      "overallSavedPct": 87.9,
+      "scenariosWithFullRecall": 0
+    },
+    {
+      "topK": 2,
+      "avgRecallPct": 50,
+      "hitRatePct": 100,
+      "avgSavedPct": 77.5,
+      "overallSavedPct": 77.4,
+      "scenariosWithFullRecall": 0
+    },
+    {
+      "topK": 3,
+      "avgRecallPct": 55.6,
+      "hitRatePct": 100,
+      "avgSavedPct": 66.9,
+      "overallSavedPct": 66.8,
+      "scenariosWithFullRecall": 0
+    },
+    {
+      "topK": 4,
+      "avgRecallPct": 69.4,
+      "hitRatePct": 100,
+      "avgSavedPct": 55.8,
+      "overallSavedPct": 55.8,
+      "scenariosWithFullRecall": 2
+    },
+    {
+      "topK": 5,
+      "avgRecallPct": 75,
+      "hitRatePct": 100,
+      "avgSavedPct": 45.8,
+      "overallSavedPct": 45.9,
+      "scenariosWithFullRecall": 2
+    },
+    {
+      "topK": 6,
+      "avgRecallPct": 75,
+      "hitRatePct": 100,
+      "avgSavedPct": 36.6,
+      "overallSavedPct": 36.7,
+      "scenariosWithFullRecall": 2
+    }
+  ],
+  "recommended": {
+    "topK": 1,
+    "avgRecallPct": 38.9,
+    "hitRatePct": 100,
+    "avgSavedPct": 87.9,
+    "overallSavedPct": 87.9,
+    "scenariosWithFullRecall": 0
+  }
+}

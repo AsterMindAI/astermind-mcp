@@ -1,0 +1,23 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
+  "name": "io.github.AsterMindAI/astermind-mcp",
+  "description": "Cut LLM token usage on-device with reranking and context filtering. Measured 66.8% context-token reduction with a relevant passage kept in 100% of benchmark scenarios.",
+  "status": "active",
+  "repository": {
+    "url": "https://github.com/AsterMindAI/astermind-mcp",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "websiteUrl": "https://astermindai.com",
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "@astermind/astermind-mcp",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

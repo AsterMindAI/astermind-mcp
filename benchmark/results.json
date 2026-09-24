@@ -1,0 +1,141 @@
+{
+  "aggregate": {
+    "scenarios": 6,
+    "avgSavedPct": 66.9,
+    "answerPresentPct": 100,
+    "avgRecall": 55.6,
+    "avgPrecision": 50,
+    "totalTokensBefore": 926,
+    "totalTokensAfter": 307,
+    "policy": {
+      "minRelevance": 0,
+      "maxDocs": 3,
+      "note": "keep top-3 by rerank rank"
+    },
+    "tokenizer": "gpt-tokenizer (o200k/cl100k BPE, OpenAI-compatible)",
+    "timestamp": "2026-09-24T17:36:14.976Z",
+    "overallSavedPct": 66.8
+  },
+  "scenarios": [
+    {
+      "name": "SaaS support KB — password reset",
+      "query": "how do I reset a forgotten password",
+      "totalDocs": 10,
+      "keptDocs": 3,
+      "tokensBefore": 170,
+      "tokensAfter": 54,
+      "tokensSaved": 116,
+      "savedPct": 68.2,
+      "relevantTotal": 3,
+      "relevantKept": 2,
+      "answerPresent": true,
+      "recall": 66.7,
+      "precision": 66.7,
+      "keptIndices": [
+        0,
+        4,
+        7
+      ]
+    },
+    {
+      "name": "API docs — rate limiting",
+      "query": "what are the API rate limits and how do I handle 429 errors",
+      "totalDocs": 10,
+      "keptDocs": 3,
+      "tokensBefore": 169,
+      "tokensAfter": 61,
+      "tokensSaved": 108,
+      "savedPct": 63.9,
+      "relevantTotal": 3,
+      "relevantKept": 2,
+      "answerPresent": true,
+      "recall": 66.7,
+      "precision": 66.7,
+      "keptIndices": [
+        0,
+        5,
+        7
+      ]
+    },
+    {
+      "name": "HR policy — remote work",
+      "query": "can employees work remotely and what is the expense policy for home office",
+      "totalDocs": 10,
+      "keptDocs": 3,
+      "tokensBefore": 143,
+      "tokensAfter": 39,
+      "tokensSaved": 104,
+      "savedPct": 72.7,
+      "relevantTotal": 2,
+      "relevantKept": 1,
+      "answerPresent": true,
+      "recall": 50,
+      "precision": 33.3,
+      "keptIndices": [
+        0,
+        2,
+        3
+      ]
+    },
+    {
+      "name": "E-commerce FAQ — shipping & returns",
+      "query": "how long does shipping take and what is the return window",
+      "totalDocs": 10,
+      "keptDocs": 3,
+      "tokensBefore": 149,
+      "tokensAfter": 54,
+      "tokensSaved": 95,
+      "savedPct": 63.8,
+      "relevantTotal": 3,
+      "relevantKept": 2,
+      "answerPresent": true,
+      "recall": 66.7,
+      "precision": 66.7,
+      "keptIndices": [
+        0,
+        4,
+        8
+      ]
+    },
+    {
+      "name": "DevOps runbook — deployment rollback",
+      "query": "how do I roll back a failed production deployment",
+      "totalDocs": 10,
+      "keptDocs": 3,
+      "tokensBefore": 148,
+      "tokensAfter": 51,
+      "tokensSaved": 97,
+      "savedPct": 65.5,
+      "relevantTotal": 2,
+      "relevantKept": 1,
+      "answerPresent": true,
+      "recall": 50,
+      "precision": 33.3,
+      "keptIndices": [
+        3,
+        8,
+        9
+      ]
+    },
+    {
+      "name": "Fintech help — transaction disputes",
+      "query": "how do I dispute a fraudulent charge on my card",
+      "totalDocs": 10,
+      "keptDocs": 3,
+      "tokensBefore": 147,
+      "tokensAfter": 48,
+      "tokensSaved": 99,
+      "savedPct": 67.3,
+      "relevantTotal": 3,
+      "relevantKept": 1,
+      "answerPresent": true,
+      "recall": 33.3,
+      "precision": 33.3,
+      "keptIndices": [
+        0,
+        1,
+        4
+      ]
+    }
+  ]
+}
