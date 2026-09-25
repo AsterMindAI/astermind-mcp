@@ -1,0 +1,11 @@
+# Smithery config for astermind-mcp
+# Place this file at the ROOT of github.com/AsterMindAI/astermind-mcp
+# Local stdio server — no API keys, nothing leaves the machine.
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    properties: {}
+    required: []
+  commandFunction: |-
+    (config) => ({ command: "node", args: ["src/index.js"] })
