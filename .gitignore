@@ -2,3 +2,7 @@ node_modules/
 *.log
 .DS_Store
 .npmrc
+
+# AWS Lambda build artifacts
+deploy/build/
+deploy/function.zip
