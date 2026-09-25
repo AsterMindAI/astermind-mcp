@@ -72,9 +72,9 @@ t('headers: Bearer (any case), x-astermind-license, mixed-case names', () => {
   assert.equal(tokenFromHeaders({ 'X-AsterMind-License': 'abc' }), 'abc');
   assert.equal(tokenFromHeaders({}), '');
 });
-t('the production key list is exactly one Ed25519 public key and no private key', () => {
-  assert.equal(PUBLIC_KEYS.length, 1);
-  assert.match(PUBLIC_KEYS[0].pem, /^-----BEGIN PUBLIC KEY-----\n/);
+t('the production key list holds only Ed25519 public keys and no private key', () => {
+  assert.ok(PUBLIC_KEYS.length >= 1 && PUBLIC_KEYS.length <= 2);
+  for (const k of PUBLIC_KEYS) assert.match(k.pem, /^-----BEGIN PUBLIC KEY-----\n/);
   assert.doesNotMatch(PUBLIC_KEYS.map((k) => k.pem).join(''), /PRIVATE/);
   // a token from the throwaway key must NOT verify against production
   assert.equal(makeLicenseChecker({ now: () => NOW })(mint(base())).state, 'INVALID');

@@ -35,6 +35,12 @@ export const PUBLIC_KEYS = [
     kid: 'amcp-2026-09',
     pem: '-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAC6qLYv8vVbrTLtzg1NfGlbR+L/EqD2nHRaN8VJRtadg=\n-----END PUBLIC KEY-----\n',
   },
+  {
+    // On-box license server (StarNet workspace ../license-server/signing-key.pem).
+    // Added for automated + Mac-independent minting; the original Mac/Secrets-Manager key above still verifies.
+    kid: 'amcp-box-2026-09',
+    pem: '-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAorUOwZSEK/CigevIVPKTQY1scbwbhWSGc7GOlCW0BWc=\n-----END PUBLIC KEY-----\n',
+  },
 ];
 
 const b64uDecode = (s) => Buffer.from(s.replace(/-/g, '+').replace(/_/g, '/'), 'base64');
