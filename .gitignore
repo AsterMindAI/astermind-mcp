@@ -6,3 +6,9 @@ node_modules/
 # AWS Lambda build artifacts
 deploy/build/
 deploy/function.zip
+
+# Fulfilment worker — never commit issued licences or the audit ledger
+billing/outbox/
+billing/fulfilment-ledger.jsonl
+billing/fulfilment-ledger.tmp
+billing/*.tmp
