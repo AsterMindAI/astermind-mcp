@@ -19,6 +19,7 @@ echo "== assemble bundle =="
 rm -rf "$BUILD"; mkdir -p "$BUILD"
 cp "$HERE/../src/engine.js" "$BUILD/engine.js"
 cp "$HERE/lambda.mjs"       "$BUILD/lambda.mjs"
+cp "$HERE/license.mjs"      "$BUILD/license.mjs"
 cp "$HERE/package.json"     "$BUILD/package.json"
 ( cd "$BUILD" && npm install --omit=dev --no-audit --no-fund )
 
@@ -41,11 +42,17 @@ fi
 $AWS lambda wait function-active --function-name "$FN" --region "$REGION"
 
 echo "== public Function URL =="
-$AWS lambda create-function-url-config --function-name "$FN" --auth-type NONE \
-  --cors '{"AllowOrigins":["*"],"AllowMethods":["GET","POST"],"AllowHeaders":["content-type"]}' \
-  --region "$REGION" >/dev/null 2>&1 || true
+# mcp.astermind.ai (CloudFront) points at this exact URL: update its config in place, never delete/recreate it.
+CORS='{"AllowOrigins":["*"],"AllowMethods":["GET","POST"],"AllowHeaders":["content-type","authorization","x-astermind-license"],"ExposeHeaders":["x-astermind-license-warning"]}'
+$AWS lambda create-function-url-config --function-name "$FN" --auth-type NONE --cors "$CORS" \
+  --region "$REGION" >/dev/null 2>&1 \
+  || $AWS lambda update-function-url-config --function-name "$FN" --cors "$CORS" --region "$REGION" >/dev/null
+# A public (auth NONE) Function URL needs BOTH permissions; with only the first one AWS answers 403.
 $AWS lambda add-permission --function-name "$FN" --statement-id FunctionURLAllowPublicAccess \
   --action lambda:InvokeFunctionUrl --principal '*' --function-url-auth-type NONE \
+  --region "$REGION" >/dev/null 2>&1 || true
+$AWS lambda add-permission --function-name "$FN" --statement-id FunctionURLInvokeAllowPublicAccess \
+  --action lambda:InvokeFunction --principal '*' --invoked-via-function-url \
   --region "$REGION" >/dev/null 2>&1 || true
 URL=$($AWS lambda get-function-url-config --function-name "$FN" --region "$REGION" --query FunctionUrl --output text)
 echo "Function URL: $URL"

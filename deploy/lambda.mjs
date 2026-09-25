@@ -5,27 +5,53 @@
  * over HTTPS. Every route runs on-device ML. NOTHING here is a stub.
  *
  * Routes:
- *   GET  /            -> service info + tool list
- *   GET  /health      -> liveness + engine version
- *   GET  /demo        -> zero-input live proof of token reduction (compress_context)
- *   POST /v1/<tool>   -> call one of the 10 engine tools with a JSON body
+ *   GET  /            -> service info + tool list                       (open)
+ *   GET  /health      -> liveness + engine version                      (open)
+ *   GET  /demo        -> zero-input live proof of token reduction       (open)
+ *   GET  /license     -> the caller's licence status                    (needs a licence header)
+ *   POST /v1/<tool>   -> call one of the 10 engine tools with JSON body (needs a licence that includes <tool>)
+ *
+ * Licence: send `Authorization: Bearer AMCP-LIC.v1.…` (or `x-astermind-license: AMCP-LIC.v1.…`).
+ * See ./license.mjs for the token format and checks.
  */
 import * as E from './engine.js';
+import { makeLicenseChecker, tokenFromHeaders, allowsTool, warningHeader } from './license.mjs';
 
-const VERSION = '0.1.0';
+const VERSION = '0.2.0';
 const ENGINE = '@astermind/astermind-community@3.0.0';
+const LICENSE_HELP = 'Send your licence as `Authorization: Bearer AMCP-LIC.v1.…`. To get or renew one, contact AsterMind AI (https://astermindai.com).';
 
 const CORS = {
   'access-control-allow-origin': '*',
   'access-control-allow-methods': 'GET,POST,OPTIONS',
-  'access-control-allow-headers': 'content-type',
+  'access-control-allow-headers': 'content-type,authorization,x-astermind-license',
+  'access-control-expose-headers': 'x-astermind-license-warning',
 };
 
-const json = (statusCode, obj) => ({
+const json = (statusCode, obj, extraHeaders = {}) => ({
   statusCode,
-  headers: { 'content-type': 'application/json', ...CORS },
+  headers: { 'content-type': 'application/json', ...CORS, ...extraHeaders },
   body: JSON.stringify(obj, null, 2),
 });
+
+// What a caller may see about their own licence. Never echoes the token itself.
+const licenseView = (lic) => ({
+  state: lic.state,
+  reason: lic.reason || undefined,
+  licenseId: lic.licenseId,
+  customer: lic.customer,
+  edition: lic.edition || undefined,
+  expiresAt: Number.isInteger(lic.expiresAt) ? new Date(lic.expiresAt * 1000).toISOString() : undefined,
+  daysRemaining: lic.daysRemaining,
+  graceDaysRemaining: lic.graceDaysRemaining,
+  tools: lic.tools,
+});
+
+// 401 when no licence was sent, 403 when one was sent but cannot be used.
+const licenseRefusal = (lic) =>
+  json(lic.state === 'MISSING' ? 401 : 403,
+    { error: 'LICENSE_' + lic.state, message: lic.reason, help: LICENSE_HELP, ...(lic.state === 'MISSING' ? {} : { license: licenseView(lic) }) },
+    lic.state === 'MISSING' ? { 'www-authenticate': 'Bearer realm="AsterMind MCP"' } : {});
 
 // tool name -> engine call. Named params come straight from the JSON body.
 const TOOLS = {
@@ -94,48 +120,65 @@ function parseBody(event) {
   }
 }
 
-export const handler = async (event) => {
-  const method = event?.requestContext?.http?.method || event?.httpMethod || 'GET';
-  let path = event?.rawPath || event?.path || '/';
-  path = path.replace(/\/+$/, '') || '/';
+// The licence checker is injectable so tests can use a throwaway key pair; the Lambda uses the production key.
+export function makeHandler({ checkLicense = makeLicenseChecker() } = {}) {
+  return async (event) => {
+    const method = event?.requestContext?.http?.method || event?.httpMethod || 'GET';
+    let path = event?.rawPath || event?.path || '/';
+    path = path.replace(/\/+$/, '') || '/';
 
-  if (method === 'OPTIONS') return { statusCode: 204, headers: CORS, body: '' };
+    if (method === 'OPTIONS') return { statusCode: 204, headers: CORS, body: '' };
 
-  try {
-    if (method === 'GET' && path === '/') {
-      return json(200, {
-        name: 'AsterMind Hosted API',
-        version: VERSION,
-        engine: ENGINE,
-        description:
-          'On-device token-reduction and retrieval tools over HTTPS. Nothing leaves the box beyond ' +
-          'what you send this endpoint, and no tool is stubbed.',
-        tools: TOOL_NAMES,
-        usage: {
-          proof: 'GET /demo  — zero-input live token-reduction proof',
-          call: 'POST /v1/<tool> with a JSON body, e.g. /v1/compress_context',
-          health: 'GET /health',
-        },
-        source: 'https://github.com/AsterMindAI/astermind-mcp',
-      });
+    try {
+      if (method === 'GET' && path === '/') {
+        return json(200, {
+          name: 'AsterMind Hosted API',
+          version: VERSION,
+          engine: ENGINE,
+          description:
+            'On-device token-reduction and retrieval tools over HTTPS. Nothing leaves the box beyond ' +
+            'what you send this endpoint, and no tool is stubbed.',
+          tools: TOOL_NAMES,
+          usage: {
+            proof: 'GET /demo  — zero-input live token-reduction proof (no licence needed)',
+            call: 'POST /v1/<tool> with a JSON body, e.g. /v1/compress_context (licence required)',
+            license: 'GET /license — check your licence status. ' + LICENSE_HELP,
+            health: 'GET /health',
+          },
+          source: 'https://github.com/AsterMindAI/astermind-mcp',
+        });
+      }
+      if (method === 'GET' && path === '/health') {
+        return json(200, { status: 'ok', version: VERSION, engine: ENGINE, tools: TOOL_NAMES.length });
+      }
+      if (method === 'GET' && path === '/demo') {
+        return json(200, demo());
+      }
+      if (method === 'GET' && path === '/license') {
+        const lic = checkLicense(tokenFromHeaders(event.headers));
+        if (lic.state === 'MISSING') return licenseRefusal(lic);
+        return json(200, { license: licenseView(lic) });
+      }
+      if (method === 'POST' && path.startsWith('/v1/')) {
+        const name = path.slice('/v1/'.length);
+        const fn = TOOLS[name];
+        if (!fn) return json(404, { error: `unknown tool '${name}'`, tools: TOOL_NAMES });
+        const lic = checkLicense(tokenFromHeaders(event.headers));
+        if (!lic.ok) return licenseRefusal(lic);
+        if (!allowsTool(lic, name)) {
+          return json(403, { error: 'LICENSE_TOOL_NOT_INCLUDED', message: `Your licence does not include ${name}`, help: LICENSE_HELP, license: licenseView(lic) });
+        }
+        const body = parseBody(event);
+        if (body === null) return json(400, { error: 'invalid JSON body' });
+        const result = fn(body);
+        const warning = warningHeader(lic);
+        return json(200, { tool: name, result }, warning ? { 'x-astermind-license-warning': warning } : {});
+      }
+      return json(404, { error: 'not found', method, path, hint: 'GET / for usage' });
+    } catch (err) {
+      return json(500, { error: 'engine error', message: String(err?.message || err) });
     }
-    if (method === 'GET' && path === '/health') {
-      return json(200, { status: 'ok', version: VERSION, engine: ENGINE, tools: TOOL_NAMES.length });
-    }
-    if (method === 'GET' && path === '/demo') {
-      return json(200, demo());
-    }
-    if (method === 'POST' && path.startsWith('/v1/')) {
-      const name = path.slice('/v1/'.length);
-      const fn = TOOLS[name];
-      if (!fn) return json(404, { error: `unknown tool '${name}'`, tools: TOOL_NAMES });
-      const body = parseBody(event);
-      if (body === null) return json(400, { error: 'invalid JSON body' });
-      const result = fn(body);
-      return json(200, { tool: name, result });
-    }
-    return json(404, { error: 'not found', method, path, hint: 'GET / for usage' });
-  } catch (err) {
-    return json(500, { error: 'engine error', message: String(err?.message || err) });
-  }
-};
+  };
+}
+
+export const handler = makeHandler();
