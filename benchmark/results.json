@@ -13,7 +13,7 @@
       "note": "keep top-3 by rerank rank"
     },
     "tokenizer": "gpt-tokenizer (o200k/cl100k BPE, OpenAI-compatible)",
-    "timestamp": "2026-09-24T17:36:14.976Z",
+    "timestamp": "2026-09-25T01:36:29.631Z",
     "overallSavedPct": 66.8
   },
   "scenarios": [
