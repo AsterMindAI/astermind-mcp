@@ -13,14 +13,17 @@
 | Memory / timeout | 1024 MB / 30 s |
 | Role | `starnet-lambda-exec` (passed at create) |
 | Engine | `@astermind/astermind-community@3.0.0` (real, not a stub) |
-| Function URL | `https://ltjq56za2mg4r7yab23xd22gzu0iepbd.lambda-url.us-east-1.on.aws/` |
+| Function URL | `https://ltjq56za2mg4r7yab23xd22gzu0iepbd.lambda-url.us-east-1.on.aws/` (CloudFront's origin: **never delete or recreate it**) |
+| Public address | `https://mcp.astermind.ai` → CloudFront `EFQF4JAC11TCN` (ACM certificate for `mcp.astermind.ai`) → the Function URL |
+| Concurrency cap | 10 reserved concurrent executions (cost ceiling; change only with the owner's OK) |
 
 ## Routes
 
-- `GET  /` — service info + tool list
-- `GET  /health` — liveness + engine version
-- `GET  /demo` — zero-input live proof of token reduction
-- `POST /v1/<tool>` — one of: `rerank_documents`, `filter_context`, `compress_context`,
+- `GET  /` — service info + tool list (open)
+- `GET  /health` — liveness + engine version (open)
+- `GET  /demo` — zero-input live proof of token reduction (open)
+- `GET  /license` — the caller's licence status (licence header required)
+- `POST /v1/<tool>` — **licence required, and the licence must include the tool** — one of: `rerank_documents`, `filter_context`, `compress_context`,
   `classify_text`, `detect_language`, `semantic_search`, `generate_embeddings`,
   `compare_texts`, `count_tokens`, `estimate_savings`
 
@@ -48,31 +51,35 @@ $AWS lambda invoke --function-name starnet-astermind-mcp --region us-east-1 \
   /tmp/out.json && cat /tmp/out.json
 ```
 
-## Open blocker: public (anonymous) access
+## Public access (resolved)
 
-The public Function URL returns **HTTP 403 Forbidden** even though:
+The earlier HTTP 403 on the public Function URL was **not** an SCP. SCPs never apply to this account,
+because it is the organisation's management account. A public (`AuthType NONE`) Function URL needs
+**two** resource-policy statements, and the function had only the first:
 
-- the URL `AuthType` is confirmed `NONE`,
-- the function's resource policy contains the exact canonical public-allow statement
-  (`Principal:*`, `Action:lambda:InvokeFunctionUrl`, `Condition FunctionUrlAuthType=NONE`),
-- we waited well past auth propagation (6 retries over 90 s),
-- and a **direct IAM invoke of the same function returns 200**.
+- `lambda:InvokeFunctionUrl` with `lambda:FunctionUrlAuthType = NONE` (statement `FunctionURLAllowPublicAccess`)
+- `lambda:InvokeFunction` with `lambda:InvokedViaFunctionUrl = true` (statement `FunctionURLInvokeAllowPublicAccess`)
 
-That combination means the request is rejected at the AWS Function-URL auth boundary
-**before** it reaches the code — i.e. an account/organization guardrail (an SCP or a
-permissions boundary) is denying anonymous Function URL invocation. The `starnet-manhunter`
-IAM user cannot see or change org SCPs, so this needs an admin action.
+Both are now in place, and `deploy-lambda.sh` adds both, so a fresh deploy cannot regress to 403.
 
-### Two doors to public reach (admin choice)
+## Licences
 
-1. **Allow public Function URLs** for `starnet-*` functions from the admin account
-   (`julian@astermind.ai`). Nothing else changes — the endpoint is instantly public.
-2. **Publish the package** (`@astermind/astermind-mcp`) to npm with an Automation token,
-   which is how MCP clients discover and install servers via `npx`. The GitHub repo is
-   already live at https://github.com/AsterMindAI/astermind-mcp .
+`POST /v1/<tool>` requires an AsterMind MCP licence, sent as `Authorization: Bearer AMCP-LIC.v1.…`
+(or `x-astermind-license: AMCP-LIC.v1.…`). Format and checks are in `license.mjs`; tests in
+`license.test.mjs` (`node deploy/license.test.mjs`).
 
-An interim option that works today without any admin change: switch the Function URL to
-`AuthType AWS_IAM` and give consumers SigV4-signed access (authenticated, not anonymous).
+- Same design as Over Watch's licence (offline Ed25519 signature, public key baked into the code), with
+  its **own** key pair, so an MCP licence never unlocks Over Watch and vice versa.
+- The licence lists the tools it grants explicitly; a tool it does not list answers
+  `403 LICENSE_TOOL_NOT_INCLUDED`.
+- Responses: no licence `401 LICENSE_MISSING`; bad or foreign licence `403 LICENSE_INVALID`; past expiry
+  plus grace `403 LICENSE_EXPIRED`; revoked `403 LICENSE_REVOKED`. Inside the last 14 days, and during
+  grace, calls still work and carry an `x-astermind-license-warning` header.
+- **Revoke** a licence without redeploying: add its licence id to the function's `AMCP_REVOKED_LIDS`
+  environment variable (comma-separated).
+- **Minting is not in this repository.** The private signing key lives only in AWS Secrets Manager
+  (`astermind/license/astermind-mcp/ed25519-signing-key`) and is used by AsterMind's private minting tool,
+  which also keeps the issuance ledger. StarNet agents have no access to it.
 
 ## Redeploy
 

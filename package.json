@@ -16,7 +16,7 @@
   ],
   "scripts": {
     "start": "node src/index.js",
-    "test": "node src/engine.test.mjs && node src/engine2.test.mjs && node src/mcp.client.test.mjs",
+    "test": "node src/engine.test.mjs && node src/engine2.test.mjs && node src/mcp.client.test.mjs && node deploy/license.test.mjs",
     "benchmark": "node benchmark/benchmark.mjs",
     "benchmark:sweep": "node benchmark/sweep.mjs"
   },
